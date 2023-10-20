@@ -1,7 +1,8 @@
 <?php
 
-use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\CalendarController;
 
 /*
 |--------------------------------------------------------------------------
@@ -17,6 +18,16 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return view('welcome');
 });
+
+
+
+
+
+Route::get('/upload', [CalendarController::class, 'showUploadForm']);
+Route::post('/upload', [CalendarController::class, 'upload']);
+Route::get('/download-ical', [CalendarController::class, 'downloadIcal']);
+
+
 
 Route::get('/dashboard', function () {
     return view('dashboard');
