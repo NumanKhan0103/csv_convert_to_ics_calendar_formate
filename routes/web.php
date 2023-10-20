@@ -15,15 +15,15 @@ use App\Http\Controllers\CalendarController;
 |
 */
 
-Route::get('/', function () {
-    return view('welcome');
-});
+// Route::get('/', function () {
+//     return view('welcome');
+// });
 
 
 
 
 
-Route::get('/upload', [CalendarController::class, 'showUploadForm']);
+Route::get('/', [CalendarController::class, 'showUploadForm']);
 Route::post('/upload', [CalendarController::class, 'upload']);
 Route::get('/download-ical', [CalendarController::class, 'downloadIcal']);
 
