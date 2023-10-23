@@ -25,7 +25,10 @@ use App\Http\Controllers\CalendarController;
 
 Route::get('/', [CalendarController::class, 'showUploadForm']);
 Route::post('/upload', [CalendarController::class, 'upload']);
-Route::get('/download-ical', [CalendarController::class, 'downloadIcal']);
+Route::get('/download-ics', [CalendarController::class, 'downloadIcs']);
+
+
+
 
 
 
