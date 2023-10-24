@@ -219,7 +219,21 @@ class CalendarController extends Controller
 
         $icalPath = storage_path('app/public/calendar.ics');
         file_put_contents($icalPath, $calendar->get());
-        return redirect('/download-ics');
+
+
+
+        $encodedTitle = urlencode("Event Title");
+    $encodedLocation = urlencode("Event Location");
+    $encodedDetails = urlencode("Event Description");
+    $encodedDates = urlencode("2023-01-01T12:00:00/2023-01-01T14:00:00");
+
+    // Generate the Google Calendar Event URL
+    $googleCalendarUrl = "https://www.google.com/calendar/render?action=TEMPLATE&text=$encodedTitle&dates=$encodedDates&details=$encodedDetails&location=$encodedLocation";
+
+    return redirect($googleCalendarUrl);
+
+
+        // return redirect('/download-ics');
     }
 
 
