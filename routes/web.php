@@ -23,10 +23,13 @@ use App\Http\Controllers\CalendarController;
 
 
 
-Route::get('/', [CalendarController::class, 'showUploadForm']);
-Route::post('/upload', [CalendarController::class, 'upload']);
-Route::get('/download-ics', [CalendarController::class, 'downloadIcs']);
+Route::get('/', [CalendarController::class, 'showUploadForm'])->name('home');
+Route::post('/generateICS', [CalendarController::class, 'addToGoogleCalendar']);
+// Route::get('/download-ics', [CalendarController::class, 'downloadIcs']);
 
+// Route::get('/generate-ics', [YourController::class, 'generateICS']);
+Route::post('/add-to-google-calendar', [CalendarController::class, 'addToGoogleCalendar'])->name('addToGoogleCalendar');
+// Route::get('/confirmation-page', [CalendarController::class, 'confirmationPage'])->name('confirmationPage');
 
 
 

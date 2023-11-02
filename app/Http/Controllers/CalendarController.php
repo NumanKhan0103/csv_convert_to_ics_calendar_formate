@@ -8,8 +8,14 @@ use League\Csv\Reader;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\File;
-use Spatie\IcalendarGenerator\Components\Event;
-use Spatie\IcalendarGenerator\Components\Calendar;
+use Google_Client as GoogleClient; // Update the alias to match the installed library
+use Google_Service_Calendar as GoogleCalendarService;
+use Google_Service_Calendar_Event as GoogleCalendarEvent;
+use App\Http\Controllers\GoogleCalendar;
+// use Google\Client as GoogleClient;
+// use Spatie\GoogleCalendar\Event as GoogleCalendarEvent;
+// use Spatie\GoogleCalendar\GoogleCalendarService;
+
 
 class CalendarController extends Controller
 {
@@ -18,223 +24,136 @@ class CalendarController extends Controller
         return view('upload_form');
     }
 
-    // public function upload(Request $request)
-    // {
 
-    //     $request->validate([
-    //         'csvFile' => 'required|mimes:csv,txt',
-    //     ]);
+    public function addToGoogleCalendar(Request $request)
+{
+    $events = [];
 
-    //     $csv = Reader::createFromPath($request->file('csvFile')->getPathname(), 'r');
+    $request->validate([
+        'csvFile' => 'required|mimes:csv,txt',
+    ]);
 
-    //     $records = $csv->getRecords();
+    $csv = Reader::createFromPath($request->file('csvFile')->getPathname(), 'r');
+    $records = $csv->getRecords();
+    $events = [];
+    $current_month = date('m');
 
-    //     // Initialize the iCalendar data
-    //     $icalData = "BEGIN:VCALENDAR\n";
+    // Create an instance of GoogleCalendar
+    // $googleCalendar = new App\Http\Controllers\GoogleCalendarController();
 
-    //     $icalData .= "VERSION:2.0\n";
+    $googleCalendar = new GoogleCalendar();
 
-    //     foreach ($records as $record) {
+    foreach ($records as $record) {
+        $month = $record[0];
+        $day = $record[1];
+        $year = Carbon::now()->year;
+        $prayerTimings = array_slice($record, 2);
 
-    //                 $date = $record[0];
-    //                 $prayerTimings = array_slice($record, 2); // Exclude date and subheadings
+        $prayers = ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
 
-    //                 // Create individual events for each prayer
-    //                 $prayers = ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
-
-    //                 foreach ($prayers as $index => $prayer) {
-    //                     // Convert extracted data to iCalendar format
-    //                     $icalData .= "BEGIN:VEVENT\n";
-    //                     $icalData .= "SUMMARY:$prayer Prayer\n";
-    //                     $icalData .= "DTSTART:" . str_replace('-', '', $date) . "T" . str_replace('.', '', $prayerTimings[$index]) . "00Z\n";
-    //                     $icalData .= "DTEND:" . str_replace('-', '', $date) . "T" . str_replace('.', '', $prayerTimings[$index + 1]) . "00Z\n";
-
-    //                     // ... add more event properties as needed
-    //                     $icalData .= "END:VEVENT\n";
-
-    //                 }
-
-    //     }
-
-    //     $icalData .= "END:VCALENDAR";
-
-    //     // Save the iCalendar data to a file
-    //     $icalPath = storage_path('app/public/calendar.ics');
-    //     file_put_contents($icalPath, $icalData);
-
-    //     return redirect('/download-ics');
-    // }
-
-//     public function upload(Request $request)
-// {
-//     $request->validate([
-//         'csvFile' => 'required|mimes:csv,txt',
-//     ]);
-
-//     $csv = Reader::createFromPath($request->file('csvFile')->getPathname(), 'r');
-//     $records = $csv->getRecords();
-
-//     // Initialize the iCalendar data
-//     $icalData = "BEGIN:VCALENDAR\n";
-//     $icalData .= "VERSION:2.0\n";
-
-//     foreach ($records as $record) {
-//         // Extract data from the CSV record
-//         $date = $record[0];
-//         $prayerTimings = array_slice($record, 2); // Exclude date and subheadings
-
-//         // Create individual events for each prayer
-//         $prayers = ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
-
-//         foreach ($prayers as $index => $prayer) {
-            // Convert extracted data to iCalendar format
-
-            // dd($icalData = Calendar::create('Laracon online')
-            //     ->event(Event::create('Creating calender feeds')
-            //         ->startsAt(new DateTime('6 March 2019 15:00'))
-            //         ->endsAt(new DateTime('6 March 2019 16:00'))
-            //     )
-            //     ->get());
-
-            // $icalData .= "BEGIN:VEVENT\n";
-            // $icalData .= "SUMMARY:$prayer Prayer\n";
-            // $icalData .= "DTSTART:" . gmdate('Ymd\THis\Z', strtotime("$date $prayerTimings[$index]")) . "\n";
-            // $icalData .= "DTEND:" . gmdate('Ymd\THis\Z', strtotime("$date $prayerTimings[$index + 1]")) . "\n";
-            // $icalData .= "END:VEVENT\n";
-    //     }
-    // }
-
-    // $icalData .= "END:VCALENDAR";
-
-
-    // Save the iCalendar data to a file
-    // $icalPath = storage_path('app/public/calendar.ics');
-    // file_put_contents($icalPath, $icalData);
-
-    // $calendar = Calendar::create('Laracon Online');
-
-// return response($calendar->get(), 200, [
-//    'Content-Type' => 'text/calendar; charset=utf-8',
-//    'Content-Disposition' => 'attachment; filename="my-awesome-calendar.ics"',
-// ]);
-
-    // return redirect('/download-ical');
-// }
-
-
-
-
-
-
-    public function upload(Request $request)
-    {
-        $request->validate([
-            'csvFile' => 'required|mimes:csv,txt',
-        ]);
-
-        $csv = Reader::createFromPath($request->file('csvFile')->getPathname(), 'r');
-        $records = $csv->getRecords();
-
-        // Initialize the iCalendar data
-        $calendar = new Calendar();
-
-        $total_record  = 0;
-
-        foreach ($records as $record) {
-            $month = $record[0];
-            $day = $record[1];
-            $year = Carbon::now()->year; // Assuming the current year; adjust as needed
-            $prayerTimings = array_slice($record, 2);
-
-            // Create individual events for each prayer
-            $prayers = ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
-
+        if ($current_month == $month) {
             foreach ($prayers as $index => $prayer) {
+                $start_time = sprintf("%.2f", $prayerTimings[$index]);
+                $end_time   = sprintf("%.2f", $prayerTimings[$index + 1]);
 
-                // echo "<pre>";
-                // print_r($prayerTimings[$index]);
-                // echo "</pre>";
-                // echo "<pre>";
-                // print_r($prayerTimings[$index + 1]);
-                // echo "</pre>";
-                // echo "<br>------ start code 8.3 convert to time --------<br>";
-
-
-
-                // ($integerValue)
-                //  echo   ++$total_record; echo " :: ";
-
-                //  $num = 109;
- $start_time = sprintf("%.2f",$prayerTimings[$index]);
- $end_time = sprintf("%.2f",$prayerTimings[$index + 1]);
-
-
-
-                // for start time ( 8.26 give number in csv convert to real time )
                 list($start_time_hours, $start_time_minutes) = explode('.', $start_time);
-                $start_time_total_minutes = ($start_time_hours * 60) + $start_time_minutes;
-                $start_time_time_format = gmdate('H:i', $start_time_total_minutes * 60);
-
-                // for end  time ( 6.26 give number in csv convert to real time )
                 list($end_time_hours, $end_time_minutes) = explode('.', $end_time);
-                $end_time_total_minutes = ($end_time_hours * 60) + $end_time_minutes;
-                $end_time_time_format = gmdate('H:i', $end_time_total_minutes * 60);
 
+                $startTime = Carbon::create($year, $month, $day, $start_time_hours, $start_time_minutes);
+                $endTime = Carbon::create($year, $month, $day, $end_time_hours, $end_time_minutes);
 
-
-
-                $startTime = DateTime::createFromFormat('H:i', $start_time_time_format);
-                $endTime   = DateTime::createFromFormat('H:i', $end_time_time_format);
-
-
-                // Check if DateTime objects were created successfully
                 if ($startTime !== false && $endTime !== false) {
+                    // Create an event and add it to the events array
+                    $events[] = $googleCalendar->event
+                        ->name($prayer)
+                        ->description('Pray Time')
+                        ->start($startTime)
+                        ->end($endTime);
 
-                //  echo "<br>";
-                // echo   ++$total_record;
-                // print_r($startTime);
-                // print_r($endTime);
-                // echo "<br>";
-
-
-
-                    $startDateTime = Carbon::create($year, $month, $day, $startTime->format('H'), $startTime->format('i'));
-                    $endDateTime = Carbon::create($year, $month, $day, $endTime->format('H'), $endTime->format('i'));
-
-                    $event = Event::create("$prayer")
-                        ->startsAt($startDateTime)
-                        ->endsAt($endDateTime);
-
-                    $calendar->event($event);
                 } else {
-                    // Log::error("Failed to create DateTime objects for $prayer Prayer at index $index");
-                    // continue;
+                    Log::error("Failed to create DateTime objects for $prayer Prayer at index $index");
+                    continue;
                 }
             }
-
-            // dd('end inner loop');
         }
-
-
-
-        $icalPath = storage_path('app/public/calendar.ics');
-        file_put_contents($icalPath, $calendar->get());
-
-
-
-        $encodedTitle = urlencode("Event Title");
-    $encodedLocation = urlencode("Event Location");
-    $encodedDetails = urlencode("Event Description");
-    $encodedDates = urlencode("2023-01-01T12:00:00/2023-01-01T14:00:00");
-
-    // Generate the Google Calendar Event URL
-    $googleCalendarUrl = "https://www.google.com/calendar/render?action=TEMPLATE&text=$encodedTitle&dates=$encodedDates&details=$encodedDetails&location=$encodedLocation";
-
-    return redirect($googleCalendarUrl);
-
-
-        // return redirect('/download-ics');
     }
+
+    // Save all events to Google Calendar
+    $googleCalendar->events($events);
+
+    // Load the service account credentials from the JSON file
+    $serviceAccountPath = public_path('client_secret.json');
+
+    $client = new GoogleClient();
+    $client->setAuthConfig($serviceAccountPath);
+    $client->addScope(GoogleCalendarService::CALENDAR_EVENTS);
+
+    // Use the service account credentials directly (no need for user authentication)
+    $client->setAccessType('offline');
+
+    $calendarService = new GoogleCalendarService($client);
+
+    // Loop through each event and add it to the Google Calendar
+    foreach ($events as $event) {
+        // Extract event details
+        $eventName = $event->name();
+        $eventDescription = $event->description();
+        $eventStartDateTime = $event->start()->getValue();
+        $eventEndDateTime = $event->end()->getValue();
+
+        // Create a new Google Calendar Event
+        $googleEvent = new GoogleCalendarEvent([
+            'summary' => $eventName,
+            'description' => $eventDescription,
+            'start' => ['dateTime' => $eventStartDateTime],
+            'end' => ['dateTime' => $eventEndDateTime],
+        ]);
+
+        // Insert the event into the primary calendar
+        $calendarService->events->insert('primary', $googleEvent);
+    }
+
+
+    return redirect()->route('confirmationPage');
+
+
+    // return response($icsData)
+    //     ->header('Content-Type', 'text/calendar; charset=utf-8');
+}
+
+    // <!-- public function addToGoogleCalendar(Request $request)
+    // {
+    //     // Parse the .ics data from the form
+    //     $icsData = $request->input('icsData');
+
+    //     // Parse the iCalendar data and add events to the calendar
+    //     $vCalendar = \Sabre\VObject\Reader::read($icsData);
+    //     foreach ($vCalendar->VEVENT as $vevent) {
+    //         // Extract event data
+    //         $name = (string)$vevent->SUMMARY;
+    //         $startDateTime = new \DateTime((string)$vevent->DTSTART);
+    //         $endDateTime = new \DateTime((string)$vevent->DTEND);
+
+    //         // Ensure $name is a string
+    //         if (is_array($name)) {
+    //             // If $name is an array, take the first element
+    //             $name = reset($name);
+    //         }
+
+    //         if(is_string($name) && $name != "" && !is_array($name)){
+
+    //         // Add event to your Google Calendar
+    //         Event::create([
+    //             'name' => (string)$name, // Ensure $name is a string
+    //             'startDateTime' => $startDateTime,
+    //             'endDateTime' => $endDateTime,
+    //         ]);
+    //     }
+    //     }
+
+    //     // Redirect user to a confirmation page or any other page as needed
+    //     return redirect()->route('confirmationPage');
+    // } -->
 
 
 
